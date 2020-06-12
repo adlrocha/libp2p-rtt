@@ -1,0 +1,20 @@
+syntax = "proto3";
+package main;
+
+message Request {
+    enum Type {
+        PING_MESSAGE = 0;
+        ACK_MESSAGE = 1;
+    }
+    Type type = 1;
+    PingMessage pingMessage = 2;
+}
+
+message PingMessage {
+    int64 timestamp = 1;
+}
+
+message AckMessage {
+    int32 code = 1;
+    int64 timestamp = 2;
+}
