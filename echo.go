@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"log"
 	mrand "math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/libp2p/go-libp2p"
@@ -146,13 +148,16 @@ func main() {
 	// make a new stream from host B to host A
 	// it should be handled on host A by the handler we set above because
 	// we use the same /echo/1.0.0 protocol
+
+	// TODO: Implement here a RTT computation.
 	for {
+		startTime := time.Now().UnixNano()
 		s, err := ha.NewStream(context.Background(), peerid, "/echo/1.0.0")
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		_, err = s.Write([]byte("Hello, world!\n"))
+		_, err = s.Write([]byte(fmt.Sprintf("%s.%s\n", "ping", strconv.FormatInt(startTime, 10))))
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -163,6 +168,11 @@ func main() {
 		}
 
 		log.Printf("read reply: %q\n", out)
+		ackTimeStr := strings.Split(string(out), "\n")[0]
+		ackTimeStr = strings.Split(ackTimeStr, ".")[1]
+		ackTime, _ := strconv.ParseInt(ackTimeStr, 10, 64)
+		fmt.Println(ackTime)
+		fmt.Println("RTT time (ns): ", ackTime-startTime)
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -176,6 +186,6 @@ func doEcho(s network.Stream) error {
 	}
 
 	log.Printf("read: %s\n", str)
-	_, err = s.Write([]byte(str))
+	_, err = s.Write([]byte(fmt.Sprintf("%s.%s\n", "ACK", strconv.FormatInt(time.Now().UnixNano(), 10))))
 	return err
 }
