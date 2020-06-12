@@ -10,9 +10,12 @@ import (
 	"log"
 	mrand "math/rand"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -20,17 +23,110 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+// func PingHandle(req Request) {
+// 	res := &proto.Request{
+// 		Type: proto.Request_ACK_MESSAGE,
+// 		AckMessage: &proto.AckMessage{
+// 			code: 1
+// 		}
+// 	}
+// 	MsgSend(req,)
+
+// }
+
+// // TODO: Extract to the node. Structure code.
+// func SendProtoMsg(n *Node, id peer.ID, data proto.Message) {
+// 	s, err := n.hosts.NewStream(context.Background(), id, protocol.VtnProtocol)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return false
+// 	}
+// 	writer := ggio.NewFullWriter(s)
+// 	err = writer.WriteMsg(data)
+// 	if err != nil {
+// 		log.Println(err)
+// 		s.Reset()
+// 		return false
+// 	}
+// 	// FullClose closes the stream and waits for the other side to close their half.
+// 	err = helpers.FullClose(s)
+// 	if err != nil {
+// 		log.Println(err)
+// 		s.Reset()
+// 		return false
+// 	}
+// 	return true
+// }
+
+// func MsgHandler(s network.Stream) {
+// 	data, err := ioutil.ReadAll(s)
+// 	if err != nil {
+// 		fmt.Fprintln(os.Stderr, err)
+// 	}
+
+// 	rcv := Request{}
+// 	proto.Unmarshal(data, rcv)
+// 	fmt.Println("Stream multiaddress", s.Conn().RemoteMultiaddr.String())
+// 	switch *req.Type {
+// 	case Request_PING_MESSAGE:
+// 		PingHandler(rcv)
+// 	defualt:
+// 		fmt.Println("Received wrong message...")
+// 	}
+// }
+
+// func MsgSend(req Request, s network.Stream) error {
+// 	msgBytes, err := proto.Marshal(req)
+// 	return error
+// }
+
 func handleStream(s network.Stream) {
 	log.Println("Got a new stream!")
+	if err := handleMsg(s); err != nil {
+		log.Println(err)
+		s.Reset()
+	} else {
+		s.Close()
+	}
+}
+func handleMsg(s network.Stream) error {
+	// // Create a buffer stream for non blocking read and write.
+	// rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+	// str, _ := rw.ReadString('\n')
 
-	// Create a buffer stream for non blocking read and write.
-	rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+	// if str == "" {
+	// 	return nil
+	// }
+	// if str != "\n" {
+	// 	// Green console colour: 	\x1b[32m
+	// 	// Reset console colour: 	\x1b[0m
+	// 	fmt.Printf("\x1b[32m%s\x1b[0m> ", str)
+	// }
+	// // TODO: This is key!!! Start from here the RPC
+	// log.Println("Received", str)
 
-	go readData(rw)
-	go writeData(rw)
+	// fmt.Println("Sending ACK...")
+	// if str != "ACK\n" {
+	// 	rw.Flush()
+	// 	rw.WriteString("ACK\n")
+	// }
+	// s.Close()
+	// go readData(rw)
+	// go writeData(rw)
 
 	// stream 's' will stay open until you close it (or the other side closes it).
+	buf := bufio.NewReader(s)
+	str, err := buf.ReadString('\n')
+	if err != nil {
+		return err
+	}
+
+	log.Printf("read: %s\n", str)
+	fmt.Println()
+	_, err = s.Write([]byte("ACK\n"))
+	return err
 }
+
 func readData(rw *bufio.ReadWriter) {
 	for {
 		str, _ := rw.ReadString('\n')
@@ -45,6 +141,7 @@ func readData(rw *bufio.ReadWriter) {
 		}
 		// TODO: This is key!!! Start from here the RPC
 		log.Println("Received", str)
+
 		if str != "ACK\n" {
 			rw.Flush()
 			rw.WriteString("ACK\n")
@@ -53,19 +150,26 @@ func readData(rw *bufio.ReadWriter) {
 	}
 }
 
-func writeData(rw *bufio.ReadWriter) {
-	stdReader := bufio.NewReader(os.Stdin)
+func sendRTT(host host.Host, id peer.ID) {
 
 	for {
-		fmt.Print("> ")
-		sendData, err := stdReader.ReadString('\n')
+		// fmt.Print("> ")
+		// sendData, err := stdReader.ReadString('\n')
 
+		// if err != nil {
+		// 	panic(err)
+		// }
+		s, err := host.NewStream(context.Background(), id, "/chat/1.0.0")
 		if err != nil {
 			panic(err)
 		}
-
+		// defer s.Close()
+		// Create a buffered stream so that read and writes are non blocking.
+		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+		sendData := "ping" + strconv.Itoa(int(time.Now().Unix()))
 		rw.WriteString(fmt.Sprintf("%s\n", sendData))
 		rw.Flush()
+		time.Sleep(5 * time.Second)
 	}
 
 }
@@ -169,17 +273,17 @@ func main() {
 
 		// Start a stream with the destination.
 		// Multiaddress of the destination peer is fetched from the peerstore using 'peerId'.
-		s, err := host.NewStream(context.Background(), info.ID, "/chat/1.0.0")
-		if err != nil {
-			panic(err)
-		}
+		// s, err := host.NewStream(context.Background(), info.ID, "/chat/1.0.0")
+		// if err != nil {
+		// 	panic(err)
+		// }
 
 		// Create a buffered stream so that read and writes are non blocking.
-		rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
+		// rw := bufio.NewReadWriter(bufio.NewReader(s), bufio.NewWriter(s))
 
 		// Create a thread to read and write data.
-		go writeData(rw)
-		go readData(rw)
+		go sendRTT(host, info.ID)
+		// go readData(rw)
 
 		// Hang forever.
 		select {}
