@@ -47,10 +47,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Configure transports and muxers
 	transports := libp2p.ChainOptions(
 		libp2p.Transport(tcp.NewTCPTransport),
 	)
-
 	muxers := libp2p.ChainOptions(
 		libp2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
 		libp2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
@@ -84,6 +84,7 @@ func main() {
 	}
 	routing := libp2p.Routing(newDHT)
 
+	// Create ñoon`jpst
 	host, err := libp2p.New(
 		ctx,
 		transports,
@@ -101,6 +102,7 @@ func main() {
 		fmt.Printf("Listening on %s/p2p/%s\n", addr, host.ID().Pretty())
 	}
 
+	// Bootstrap node or connect bootstrap
 	if !*isBootstrap {
 		fmt.Println("Trying to connect to: ", *bootstrap)
 		targetAddr, err := multiaddr.NewMultiaddr(*bootstrap)
@@ -123,6 +125,7 @@ func main() {
 		fmt.Println("Starting bootstrap node...")
 	}
 
+	// Start discovery
 	mdns, err := discovery.NewMdnsService(ctx, host, time.Second*10, "")
 	if err != nil {
 		panic(err)
