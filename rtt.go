@@ -84,7 +84,7 @@ func main() {
 	}
 	routing := libp2p.Routing(newDHT)
 
-	// Create ñoon`jpst
+	// Create host
 	host, err := libp2p.New(
 		ctx,
 		transports,
