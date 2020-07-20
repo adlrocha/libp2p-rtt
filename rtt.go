@@ -88,6 +88,6 @@ func sendPing(host host.Host, peer peer.ID, rttTable map[string]*RTTStruct) {
 	rttTable[peer.String()].samples++
 	rttTable[peer.String()].avgRTT = float64(rttTable[peer.String()].totalRTT) / float64(rttTable[peer.String()].samples)
 	fmt.Println("Received message: ", data)
-	fmt.Println("Computer RTT (ns)", rtt)
+	fmt.Println("Computed RTT (ns)", rtt)
 	fmt.Printf("Average RTT for %s: %f\n", peer.String(), rttTable[peer.String()].avgRTT)
 }
