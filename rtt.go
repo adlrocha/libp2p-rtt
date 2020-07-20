@@ -20,7 +20,7 @@ type RTTStruct struct {
 }
 
 func RTTHandler(s network.Stream, host host.Host) {
-	fmt.Println("Got an stream!")
+	fmt.Println("Got a stream!")
 	defer s.Close()
 	buf := bufio.NewReader(s)
 	data, err := buf.ReadString('\n')

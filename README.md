@@ -1,4 +1,5 @@
 # libp2p-rtt
+
 Simple implementation of an RTT protocol in a libp2p network. Bootstrap nodes periodically
 pings its connected nodes in order to track the average RTT with all the nodes it is
 connected with. This simple protocol gives a local view of the links between bootstraps
@@ -7,6 +8,9 @@ location of nodes in the network). Useful for different proof-of-concepts.
 
 Under request I may maintain the project, meanwhile it have served me well. Do not hesitate to
 contact me.
+
+![libp2p-rtt](./image.png)
+
 
 ### Usage
 * Build the code and use `--help` flag to see usage.
